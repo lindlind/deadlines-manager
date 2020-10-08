@@ -1,3 +1,5 @@
+module.exports = Queue;
+
 class Queue {
   constructor() {
     this.head_array = [];
@@ -43,4 +45,3 @@ Queue.prototype.back = function() {
   }
   return NaN;
 }
-
