@@ -1,5 +1,3 @@
-module.exports = Queue;
-
 class Queue {
   constructor() {
     this.head_array = [];
@@ -14,10 +12,10 @@ Queue.prototype.push = function(element) {
 }
 
 Queue.prototype.pop = function() {
+  if (this.length === 0) {
+    throw new Error("Pop from empty queue.");
+  }
   if (this.tail_array.length === 0) {
-    if (this.head_array.length === 0) {
-      return NaN;
-    }
     while (this.head_array.length !== 0) {
       this.tail_array.push(this.head_array.pop());
     }
@@ -27,21 +25,23 @@ Queue.prototype.pop = function() {
 }
 
 Queue.prototype.front = function() {
+  if (this.length === 0) {
+    throw new Error("Front element from empty queue.");
+  }
   if (this.tail_array.length !== 0) {
     return this.tail_array[this.tail_array.length - 1];
-  }
-  if (this.head_array.length !== 0) {
+  } else {
     return this.head_array[0];
   }
-  return NaN;
 }
 
 Queue.prototype.back = function() {
+  if (this.length === 0) {
+    throw new Error("Front element from empty queue.");
+  }
   if (this.head_array.length !== 0) {
     return this.head_array[this.head_array.length - 1];
-  }
-  if (this.tail_array.length !== 0) {
+  } else {
     return this.tail_array[0];
   }
-  return NaN;
 }

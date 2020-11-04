@@ -1,5 +1,3 @@
-const Queue = require('./Queue.gs')
-
 const EMPTY_VALUE = "";
 const EMPTY_CELL_VALUE = undefined;
 
