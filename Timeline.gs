@@ -10,7 +10,7 @@ class Task {
     let extra = new Task(this.name,
                          this.priority,
                          this.deadline, 
-                         Math.min(0, this.hours - hours)
+                         Math.max(0, this.hours - hours)
                         );
     this.hours -= extra.hours;
     return extra;
@@ -42,7 +42,7 @@ class Task {
   static splitListByHours(tasks, leftHoursTarget) {
     let leftTasksHours = 0;
     let rightTasksStartInd = 0;
-    while (leftTasksHours < hours) {
+    while (leftTasksHours < leftHoursTarget) {
       leftTasksHours += tasks[rightTasksStartInd].hours;
       rightTasksStartInd++;
       if (rightTasksStartInd === tasks.length) {
@@ -50,7 +50,7 @@ class Task {
       }
     }
 
-    if (leftTasksHours === leftHoursTarget) {
+    if (leftTasksHours <= leftHoursTarget) {
       return [tasks.slice(0, rightTasksStartInd), 
               tasks.slice(rightTasksStartInd, tasks.length)];
     }
@@ -69,8 +69,8 @@ class DayPlans {
   }
 
   addTasksSaveOld(tasks) {
-    [].concat(this.plans, tasks)
-    leftRightPlans = Task.splitListByHours(this.plans, this.hours);
+    this.plans = [].concat(this.plans, tasks)
+    let leftRightPlans = Task.splitListByHours(this.plans, this.hours);
     this.plans = leftRightPlans[0].sort(Task.cmp);
     return leftRightPlans[1];
   }
@@ -78,20 +78,23 @@ class DayPlans {
   addTasksSaveLowPrior(tasks) {
     let allPlans = [].concat(this.plans, tasks).sort(Task.cmp);
     this.plans = Task.mergeEqualInList(allPlans);
-    leftRightPlans = Task.splitListByHours(this.plans, Math.max(0, getBusyHours() - this.hours));
+    let leftRightPlans = Task.splitListByHours(this.plans, Math.max(0, this.getBusyHours() - this.hours));
     this.plans = leftRightPlans[1];
     return leftRightPlans[0];
   }
 
   getBusyHours() {
-    return this.plans.reduce((task1, task2) => task1.hours + task2.hours, 0);
+    return this.plans.reduce((h, task) => h + task.hours, 0);
   }
 
   removeTask(taskToRemove) {
-    this.plans.forEach(task => if (task.name === taskToRemove.name) 
-                                taskToRemove.hours += task.hours);
-    this.plans.filter(task => task.name !== taskToRemove.name);
-    return remTask;
+    this.plans.forEach(task => {
+                       if (task.name === taskToRemove.name) {
+                         taskToRemove.hours += task.hours;
+                       }
+    });
+    this.plans = this.plans.filter(task => task.name !== taskToRemove.name);
+    return taskToRemove;
   }
 }
 
@@ -121,7 +124,7 @@ class Timeline {
     }
 
     let allHours = 0;
-    let date = this.startWorkingDate;
+    let date = new Date(this.startWorkingDate);
     while (date - task.deadline < 0) {
       allHours += this.weekHours[date.getDay()];
       date = nextDate(date);
@@ -131,7 +134,7 @@ class Timeline {
   }
 
   addTask(task) {
-    let date = prevDate(task.deadline);
+    let date = prevDate(new Date(task.deadline));
     let tasksToAdd = [task];
     while (tasksToAdd.length > 0) {
       if (this.siftedTimeline[date] === undefined) {
@@ -142,12 +145,12 @@ class Timeline {
     }
   }
 
-  liftUpTask(task) {
-    task.hours = 0;
+  liftUpTask(_task) {
+    let task = new Task(_task.name, _task.priority, _task.deadline, 0);
     for (let date in this.siftedTimeline) {
       task = this.siftedTimeline[date].removeTask(task);
     }
-    let date = this.startWorkingDate;
+    let date = new Date(this.startWorkingDate);
     let tasksToAdd = [task];
     while (tasksToAdd.length > 0) {
       if (this.siftedTimeline[date] === undefined) {
@@ -159,11 +162,29 @@ class Timeline {
     
   }
 
+  toTable() {
+    let table = []
+    for (let date in this.siftedTimeline) {
+      this.siftedTimeline[date].plans.forEach(task => table.push([date, task.name, task.hours]));
+    }
+    table = table.sort((a,b) => new Date(a[0]) - new Date(b[0]));
+    table = table.map(row => [Utilities.formatDate(new Date(row[0]), "GMT+3", "dd.MM"),row[1],row[2]]);
+    return table;
+  }
+  
   constructTimeline(tasks) {
     tasks.sort(Task.cmp);
-    tasks.forEach(task => if (isEnoughTimeForTask(task)) 
-                            addTask(task));
-    tasks.forEach(task => liftUpTask(task));
+    console.log("sorted");
+    tasks.forEach(task => {
+                  if (this.isEnoughTimeForTask(task)) {
+                    this.addTask(task);
+                  }
+    });
+    console.log("calculated");
+    //this.liftUpTask(tasks[0]);
+    //this.liftUpTask(tasks[1]);
+    tasks.forEach(task => this.liftUpTask(task));
+    console.log("compacted");
   }
 
 }
